@@ -1,0 +1,33 @@
+FROM php:8.4-fpm-alpine AS base
+
+RUN apk add --no-cache \
+    git curl zip unzip libpq-dev icu-dev oniguruma-dev linux-headers \
+    $PHPIZE_DEPS \
+    && docker-php-ext-install pdo_pgsql pgsql intl mbstring opcache pcntl bcmath \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del $PHPIZE_DEPS
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+COPY docker/backend/php.ini /usr/local/etc/php/conf.d/wikiworld.ini
+COPY docker/backend/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
+FROM base AS vendor
+
+COPY backend/composer.json backend/composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+FROM base AS runner
+
+COPY --from=vendor /var/www/html/vendor ./vendor
+COPY backend .
+
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R ug+rwx storage bootstrap/cache
+
+USER www-data
+EXPOSE 9000
+CMD ["php-fpm"]

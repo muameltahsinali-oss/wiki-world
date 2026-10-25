@@ -1,0 +1,44 @@
+# Staging overrides — use with: docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+
+services:
+  api-internal:
+    image: nginx:1.27-alpine
+    container_name: wikiworld-api-internal
+    restart: unless-stopped
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - wikiworld
+
+  backend:
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: staging
+      APP_DEBUG: "false"
+      FRONTEND_URL: ${FRONTEND_URL:-https://staging.wikiworld.example}
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET}
+      SEARCH_ENABLED: ${SEARCH_ENABLED:-true}
+
+  frontend:
+    env_file:
+      - ./frontend/.env.local
+    command: sh -c "npm run build && npm run start"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://staging.wikiworld.example/api/v1}
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET}
+
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/staging.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${SSL_CERT_PATH:-./docker/nginx/certs}:/etc/nginx/certs:ro
+    depends_on:
+      - api-internal
+      - frontend

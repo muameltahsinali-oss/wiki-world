@@ -1,0 +1,30 @@
+{
+  "name": "wikiworld",
+  "private": true,
+  "lint-staged": {
+    "frontend/src/**/*.{ts,tsx,css,json}": [
+      "npx --prefix frontend prettier --write"
+    ],
+    "backend/**/*.php": [
+      "backend/vendor/bin/pint"
+    ]
+  },
+  "scripts": {
+    "prepare": "husky",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "cd backend && php artisan serve",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:backend": "cd backend && php artisan test",
+    "test:frontend": "npm --prefix frontend run test",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:all": "npm run test:backend && npm run test:frontend && npm run build:frontend",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "pint": "cd backend && vendor/bin/pint"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8"
+  }
+}
